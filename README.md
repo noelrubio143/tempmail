@@ -16,6 +16,21 @@ chmod +x setup.sh
 ```
 Buksan: `http://IP:9000` (may random email generator at sariling pangalan ng email)
 
+## Update (kung may bagong version sa GitHub)
+```
+cd ~/tempmail
+git pull
+docker compose up -d
+```
+
+## Mga kapaki-pakinabang na command
+```
+docker compose ps          # tingnan kung tumatakbo
+docker compose logs -f     # tingnan ang logs
+docker compose restart     # i-restart
+docker compose down        # ihinto
+```
+
 ## Notes
 - Domain ng web UI: `web/config.js` (default `amberss.site`)
 - Baguhin ang auto-delete sa `.env` (RETENTION=1h)
