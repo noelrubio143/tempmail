@@ -39,6 +39,19 @@ pre{white-space:pre-wrap;word-break:break-word;background:#0c1117;border:1px sol
 .att a{color:var(--acc)}
 .dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--ok);margin-right:6px}
 .hidden{display:none}
+
+.chatbtn{position:fixed;right:16px;bottom:16px;width:54px;height:54px;border-radius:50%;background:var(--acc2);border:0;font-size:24px;box-shadow:0 4px 14px #0008;z-index:20}
+.chatbtn i{position:absolute;top:-2px;right:-2px;background:var(--bad);color:#fff;font:700 11px/18px system-ui;min-width:18px;border-radius:9px;text-align:center;font-style:normal}
+.chat{position:fixed;right:16px;bottom:82px;width:min(360px,calc(100vw - 32px));height:min(460px,calc(100vh - 110px));background:var(--card);border:1px solid var(--line);border-radius:14px;display:flex;flex-direction:column;z-index:20;box-shadow:0 8px 30px #000a}
+.chat.hidden{display:none}
+.chat .top{display:flex;gap:8px;align-items:center;padding:10px 12px;border-bottom:1px solid var(--line)}
+.chat .top b{flex:1}
+.chat .top input{width:110px;background:#0c1117;border:1px solid var(--line);border-radius:8px;color:var(--text);padding:5px 8px;font:inherit;font-size:13px}
+.chat .log{flex:1;overflow-y:auto;padding:10px 12px;display:flex;flex-direction:column;gap:6px}
+.cm{font-size:14px;word-break:break-word}
+.cm b{color:var(--acc)} .cm.me b{color:var(--ok)} .cm small{color:var(--mute);margin-left:6px;font-size:11px}
+.chat form{display:flex;gap:8px;padding:10px;border-top:1px solid var(--line)}
+.chat form input{flex:1;min-width:0;background:#0c1117;border:1px solid var(--line);border-radius:9px;color:var(--text);padding:9px 10px;font:inherit;outline:none}
 </style>
 </head>
 <body>
@@ -73,6 +86,13 @@ pre{white-space:pre-wrap;word-break:break-word;background:#0c1117;border:1px sol
   </div>
 </div>
 
+
+<button class="chatbtn" id="chatBtn" aria-label="Chat">💬<i id="chatBadge" class="hidden">0</i></button>
+<div class="chat hidden" id="chat">
+  <div class="top"><b>Chat room</b><input id="nick" maxlength="20" placeholder="pangalan"><button id="chatX">✕</button></div>
+  <div class="log" id="clog"></div>
+  <form id="cform"><input id="ctext" maxlength="300" placeholder="Mag-type ng mensahe…" autocomplete="off"><button class="pri">Send</button></form>
+</div>
 <script src="config.js"></script>
 <script>
 const DOMAIN = window.TEMPMAIL_DOMAIN || location.hostname;
@@ -166,6 +186,42 @@ $("name").addEventListener("keydown", e=>{ if(e.key==="Enter") create(); });
 let start = ""; try{ start = localStorage.getItem("tm_box")||""; }catch(e){}
 setBox(valid(start)?start:randName());
 timer = setInterval(()=>{ if(!openId && !document.hidden) load(); }, 5000);
+
+// ---------- Chat ----------
+(function(){
+  let nick = ""; try{ nick = localStorage.getItem("tm_nick")||""; }catch(e){}
+  if(!nick) nick = "guest"+Math.floor(Math.random()*9000+1000);
+  $("nick").value = nick;
+  $("nick").addEventListener("change", ()=>{ nick = $("nick").value.trim().slice(0,20)||nick; $("nick").value=nick; try{ localStorage.setItem("tm_nick",nick); }catch(e){} });
+  let unread = 0, isOpen = false;
+  const seenIds = new Set();
+  function add(m){
+    if(seenIds.has(m.id)) return; seenIds.add(m.id);
+    const d = document.createElement("div"); d.className = "cm"+(m.nick===nick?" me":"");
+    const b = document.createElement("b"); b.textContent = m.nick;
+    const small = document.createElement("small"); small.textContent = new Date(m.t).toLocaleTimeString([], {hour:"2-digit",minute:"2-digit"});
+    d.append(b, small, document.createElement("br"), document.createTextNode(m.text));
+    const log = $("clog"), atBottom = log.scrollHeight - log.scrollTop - log.clientHeight < 60;
+    log.appendChild(d); if(atBottom) log.scrollTop = log.scrollHeight;
+  }
+  function badge(){ $("chatBadge").textContent = unread>99?"99+":unread; $("chatBadge").classList.toggle("hidden", !unread); }
+  function connect(){
+    const es = new EventSource("/chat/api/stream");
+    es.addEventListener("history", e=>{ JSON.parse(e.data).forEach(add); $("clog").scrollTop = $("clog").scrollHeight; });
+    es.onmessage = e=>{ const m = JSON.parse(e.data); const fresh = !seenIds.has(m.id); add(m); if(fresh && !isOpen && m.nick!==nick){ unread++; badge(); } };
+  }
+  $("chatBtn").onclick = ()=>{ isOpen = !isOpen; $("chat").classList.toggle("hidden", !isOpen); if(isOpen){ unread=0; badge(); $("clog").scrollTop=$("clog").scrollHeight; $("ctext").focus(); } };
+  $("chatX").onclick = ()=>{ isOpen=false; $("chat").classList.add("hidden"); };
+  $("cform").addEventListener("submit", async e=>{
+    e.preventDefault(); const t = $("ctext").value.trim(); if(!t) return;
+    $("ctext").value = "";
+    try{
+      const r = await fetch("/chat/api/send",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({nick,text:t})});
+      if(r.status===429){ $("ctext").value = t; }
+    }catch(err){ $("ctext").value = t; }
+  });
+  connect();
+})();
 </script>
 </body>
 </html>
