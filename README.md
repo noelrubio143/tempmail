@@ -25,6 +25,12 @@ docker compose restart     # i-restart
 docker compose down        # ihinto
 ```
 
+## IPTV auto-update
+- Ang `🇵🇭 Pilipinas (auto-update)` sa IPTV tab ay kada 30 min na chine-check ng VPS (`iptv.js`): patay = inaalis, bago = idinadagdag.
+- Palitan ang interval sa `.env`: `IPTV_INTERVAL_MIN=30`
+- Playlist para sa VLC/TiviMate: `http://IP:9000/iptv/api/channels.m3u`
+- Chine-check mula sa lokasyon ng VPS, kaya ang mga stream na PH-only ay maaaring ma-alis kung nasa labas ng PH ang VPS.
+
 ## Notes
 - May tatlong tab sa taas ng site: 📬 Temp Mail, 💬 Chat (public chat room) at 📺 IPTV (libreng public streams mula sa iptv-org; kailangan ng internet ang browser para makuha ang listahan). Nasa memory lang ang huling 100 mensahe; nawawala kapag nag-restart.
 - Domain ng web UI: `config.js` (default `amberss.site`)

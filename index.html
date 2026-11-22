@@ -119,7 +119,7 @@ pre{white-space:pre-wrap;word-break:break-word;background:#0c1117;border:1px sol
     <div class="tvbar">
       <select id="tvSrc">
         <optgroup label="Bansa">
-          <option value="countries/ph">🇵🇭 Pilipinas</option><option value="countries/us">🇺🇸 USA</option><option value="countries/gb">🇬🇧 UK</option>
+          <option value="ph-checked">🇵🇭 Pilipinas (auto-update)</option><option value="countries/ph">🇵🇭 Pilipinas (buong listahan)</option><option value="countries/us">🇺🇸 USA</option><option value="countries/gb">🇬🇧 UK</option>
           <option value="countries/jp">🇯🇵 Japan</option><option value="countries/kr">🇰🇷 Korea</option><option value="countries/in">🇮🇳 India</option>
           <option value="countries/sg">🇸🇬 Singapore</option><option value="countries/au">🇦🇺 Australia</option><option value="countries/ca">🇨🇦 Canada</option>
         </optgroup>
@@ -326,6 +326,13 @@ timer = setInterval(()=>{ if(!openId && !document.hidden) load(); }, 5000);
     const key=$("tvSrc").value;
     st("Kinukuha ang listahan…");
     try{
+      if(key==="ph-checked"){
+        const r=await fetch("/iptv/api/channels.json",{cache:"no-store"}); if(!r.ok) throw 0;
+        const d=await r.json(); channels=d.channels||[]; render();
+        if(!d.updated){ st(d.checking?"Chine-check pa ang mga channel (ilang minuto). Subukan ulit mamaya.":"Wala pang listahan.", true); }
+        else st(channels.length+" gumaganang channel · huling check "+new Date(d.updated).toLocaleTimeString([], {hour:"2-digit",minute:"2-digit"}));
+        return;
+      }
       if(!cache[key]){
         const r=await fetch("https://iptv-org.github.io/iptv/"+key+".m3u"); if(!r.ok) throw 0;
         cache[key]=parse(await r.text());
@@ -353,7 +360,7 @@ timer = setInterval(()=>{ if(!openId && !document.hidden) load(); }, 5000);
       st("▶ "+c.name);
     }catch(e){ st("Hindi ma-play: "+c.name+". Subukan ang iba.",true); }
   }
-  window.tvOpen=()=>{ if(!started){ started=true; loadList(); } };
+  window.tvOpen=()=>{ if(!started){ started=true; loadList(); } else if($("tvSrc").value==="ph-checked"){ loadList(); } };
   window.tvStop=()=>{ try{ video.pause(); }catch(e){} };
   $("tvSrc").onchange=loadList;
   $("tvQ").addEventListener("input",render);
