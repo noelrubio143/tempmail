@@ -28,7 +28,7 @@ docker compose down        # ihinto
 ```
 
 ## Notes
-- Domain ng web UI: `web/config.js` (default `amberss.site`)
+- Domain ng web UI: `config.js` (default `amberss.site`)
 - Baguhin ang auto-delete sa `.env` (RETENTION=1h)
 - Kailangang bukas ang inbound port 25 sa provider
 - Hindi ito pang-send ng email
