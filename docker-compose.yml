@@ -5,9 +5,20 @@ services:
     restart: always
     ports:
       - "25:2500"
-      - "9000:9000"
     environment:
       INBUCKET_STORAGE_RETENTIONPERIOD: ${RETENTION:-1h}
       INBUCKET_STORAGE_MAILBOXMSGCAP: "100"
       INBUCKET_SMTP_DEFAULTACCEPT: "true"
       INBUCKET_SMTP_DEFAULTSTORE: "true"
+
+  web:
+    image: nginx:alpine
+    container_name: tempmail-web
+    restart: always
+    depends_on:
+      - inbucket
+    ports:
+      - "9000:80"
+    volumes:
+      - ./web:/usr/share/nginx/html:ro
+      - ./web/nginx.conf:/etc/nginx/conf.d/default.conf:ro

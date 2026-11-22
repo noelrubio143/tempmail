@@ -9,13 +9,15 @@ Receive-only na temp mail. Kahit anong `kahit_ano@domainmo.com` ay tatanggap ng 
 ## Install (sa VPS)
 ```
 git clone https://github.com/noelrubio143/tempmail.git
-cd tempmail/tempmail
+cd tempmail
 touch .env.example
+chmod +x setup.sh
 ./setup.sh
 ```
-Buksan: `http://IP:9000`
+Buksan: `http://IP:9000` (may random email generator at sariling pangalan ng email)
 
 ## Notes
+- Domain ng web UI: `web/config.js` (default `amberss.site`)
 - Baguhin ang auto-delete sa `.env` (RETENTION=1h)
 - Kailangang bukas ang inbound port 25 sa provider
 - Hindi ito pang-send ng email
