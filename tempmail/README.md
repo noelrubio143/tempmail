@@ -8,8 +8,9 @@ Receive-only na temp mail. Kahit anong `kahit_ano@domainmo.com` ay tatanggap ng 
 
 ## Install (sa VPS)
 ```
-git clone https://github.com/USERNAME/tempmail.git
-cd tempmail
+git clone https://github.com/noelrubio143/tempmail.git
+cd tempmail/tempmail
+touch .env.example
 ./setup.sh
 ```
 Buksan: `http://IP:9000`
