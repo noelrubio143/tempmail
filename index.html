@@ -53,6 +53,20 @@ pre{white-space:pre-wrap;word-break:break-word;background:#0c1117;border:1px sol
 .cm b{color:var(--acc)} .cm.me b{color:var(--ok)} .cm small{color:var(--mute);margin-left:6px;font-size:11px}
 .chat form{display:flex;gap:8px;padding:12px;border-top:1px solid var(--line)}
 .chat form input{flex:1;min-width:0;background:#0c1117;border:1px solid var(--line);border-radius:9px;color:var(--text);padding:11px 12px;font:inherit;outline:none}
+
+.tabs button{padding:12px 6px;font-size:15px}
+#tv{width:100%;aspect-ratio:16/9;background:#000;border-radius:10px;display:block}
+.tvst{color:var(--mute);font-size:13px;margin:8px 0;min-height:18px;word-break:break-word}
+.tvst.bad{color:var(--bad)}
+.tvbar{display:flex;gap:8px;margin:10px 0}
+.tvbar select,.tvbar input{background:#0c1117;border:1px solid var(--line);border-radius:9px;color:var(--text);padding:10px;font:inherit;min-width:0}
+.tvbar select{flex:1}.tvbar input{flex:1}
+.chl{max-height:50vh;overflow-y:auto;border-top:1px solid var(--line)}
+.ch{display:flex;align-items:center;gap:10px;width:100%;text-align:left;background:none;border:0;border-bottom:1px solid var(--line);border-radius:0;padding:9px 4px}
+.ch img{width:36px;height:36px;object-fit:contain;background:#0c1117;border-radius:6px;flex:none}
+.ch .ph{width:36px;height:36px;border-radius:6px;background:#0c1117;flex:none;text-align:center;line-height:36px}
+.ch span{flex:1;word-break:break-word}.ch small{color:var(--mute)}
+.ch.on{background:#1d2b3c}
 </style>
 </head>
 <body>
@@ -60,6 +74,7 @@ pre{white-space:pre-wrap;word-break:break-word;background:#0c1117;border:1px sol
   <div class="tabs">
     <button id="tabMail" class="on">📬 Temp Mail</button>
     <button id="tabChat">💬 Chat<i id="chatBadge" class="hidden">0</i></button>
+    <button id="tabTv">📺 IPTV</button>
   </div>
 
   <div id="mailView">
@@ -96,6 +111,28 @@ pre{white-space:pre-wrap;word-break:break-word;background:#0c1117;border:1px sol
     <div class="top"><b>💬 Chat room</b><input id="nick" maxlength="20" placeholder="pangalan"></div>
     <div class="log" id="clog"></div>
     <form id="cform"><input id="ctext" maxlength="300" placeholder="Mag-type ng mensahe…" autocomplete="off"><button class="pri">Send</button></form>
+  </div>
+
+  <div class="card hidden" id="tvView">
+    <video id="tv" controls playsinline></video>
+    <div class="tvst" id="tvst">Pumili ng channel sa ibaba.</div>
+    <div class="tvbar">
+      <select id="tvSrc">
+        <optgroup label="Bansa">
+          <option value="countries/ph">🇵🇭 Pilipinas</option><option value="countries/us">🇺🇸 USA</option><option value="countries/gb">🇬🇧 UK</option>
+          <option value="countries/jp">🇯🇵 Japan</option><option value="countries/kr">🇰🇷 Korea</option><option value="countries/in">🇮🇳 India</option>
+          <option value="countries/sg">🇸🇬 Singapore</option><option value="countries/au">🇦🇺 Australia</option><option value="countries/ca">🇨🇦 Canada</option>
+        </optgroup>
+        <optgroup label="Kategorya">
+          <option value="categories/news">News</option><option value="categories/sports">Sports</option><option value="categories/movies">Movies</option>
+          <option value="categories/kids">Kids</option><option value="categories/music">Music</option><option value="categories/entertainment">Entertainment</option>
+          <option value="categories/documentary">Documentary</option><option value="categories/animation">Animation</option><option value="categories/series">Series</option>
+        </optgroup>
+      </select>
+      <input id="tvQ" placeholder="hanapin…" autocomplete="off">
+    </div>
+    <div class="chl" id="chl"></div>
+    <div class="tvst">Public na streams galing sa <a style="color:var(--acc)" href="https://github.com/iptv-org/iptv" target="_blank" rel="noopener">iptv-org</a>. May ilang channel na hindi gumagana o nagbabago.</div>
   </div>
 </div>
 
@@ -220,17 +257,19 @@ timer = setInterval(()=>{ if(!openId && !document.hidden) load(); }, 5000);
   }
   function show(tab){
     isOpen = tab==="chat";
-    $("chatView").classList.toggle("hidden", !isOpen);
-    $("mailView").classList.toggle("hidden", isOpen);
-    $("tabChat").classList.toggle("on", isOpen);
-    $("tabMail").classList.toggle("on", !isOpen);
+    [["mail","Mail"],["chat","Chat"],["tv","Tv"]].forEach(([t,T])=>{
+      $(t+"View").classList.toggle("hidden", t!==tab);
+      $("tab"+T).classList.toggle("on", t===tab);
+    });
     try{ localStorage.setItem("tm_tab", tab); }catch(e){}
     if(isOpen){ unread=0; badge(); $("clog").scrollTop=$("clog").scrollHeight; $("ctext").focus(); }
+    if(tab==="tv"){ window.tvOpen && window.tvOpen(); } else { window.tvStop && window.tvStop(); }
   }
   $("tabMail").onclick = ()=>show("mail");
   $("tabChat").onclick = ()=>show("chat");
+  $("tabTv").onclick = ()=>show("tv");
   let t0=""; try{ t0=localStorage.getItem("tm_tab")||""; }catch(e){}
-  if(t0==="chat") show("chat");
+  if(t0==="chat"||t0==="tv") show(t0);
   $("cform").addEventListener("submit", async e=>{
     e.preventDefault(); const t = $("ctext").value.trim(); if(!t) return;
     $("ctext").value = "";
@@ -242,6 +281,84 @@ timer = setInterval(()=>{ if(!openId && !document.hidden) load(); }, 5000);
   connect();
 })();
 
+
+// ---------- IPTV ----------
+(function(){
+  const HLS_URL = "https://cdnjs.cloudflare.com/ajax/libs/hls.js/1.5.13/hls.min.js";
+  const video = $("tv"), cache = {};
+  let hls = null, channels = [], current = "", started = false, hlsReady = null;
+  const st = (t,bad)=>{ $("tvst").textContent=t; $("tvst").classList.toggle("bad",!!bad); };
+  function loadHls(){
+    if(window.Hls) return Promise.resolve();
+    if(hlsReady) return hlsReady;
+    return hlsReady = new Promise((res,rej)=>{ const sc=document.createElement("script"); sc.src=HLS_URL; sc.onload=res; sc.onerror=()=>{hlsReady=null;rej();}; document.head.appendChild(sc); });
+  }
+  function parse(txt){
+    const out=[], L=txt.split(/\r?\n/); let meta=null;
+    for(const line of L){
+      if(line.startsWith("#EXTINF")){
+        meta={ name:(line.split(/,(.*)$/s)[1]||"").trim(),
+               logo:(line.match(/tvg-logo="([^"]*)"/)||[])[1]||"",
+               group:(line.match(/group-title="([^"]*)"/)||[])[1]||"" };
+      } else if(meta && /^https?:\/\//.test(line.trim())){
+        meta.url=line.trim(); if(meta.name) out.push(meta); meta=null;
+      }
+    }
+    return out;
+  }
+  function render(){
+    const q=$("tvQ").value.trim().toLowerCase(), box=$("chl"); box.innerHTML="";
+    const list = channels.filter(c=>!q||c.name.toLowerCase().includes(q)).slice(0,400);
+    if(!list.length){ const d=document.createElement("div"); d.className="empty"; d.textContent="Walang channel."; box.appendChild(d); return; }
+    const frag=document.createDocumentFragment();
+    list.forEach(c=>{
+      const b=document.createElement("button"); b.className="ch"+(c.url===current?" on":"");
+      if(c.logo){ const im=document.createElement("img"); im.src=c.logo; im.loading="lazy"; im.referrerPolicy="no-referrer"; im.onerror=()=>{im.replaceWith(Object.assign(document.createElement("div"),{className:"ph",textContent:"📺"}));}; b.appendChild(im); }
+      else b.appendChild(Object.assign(document.createElement("div"),{className:"ph",textContent:"📺"}));
+      const sp=document.createElement("span"); sp.textContent=c.name; b.appendChild(sp);
+      if(c.group){ const sm=document.createElement("small"); sm.textContent=c.group; b.appendChild(sm); }
+      b.onclick=()=>play(c);
+      frag.appendChild(b);
+    });
+    box.appendChild(frag);
+  }
+  async function loadList(){
+    const key=$("tvSrc").value;
+    st("Kinukuha ang listahan…");
+    try{
+      if(!cache[key]){
+        const r=await fetch("https://iptv-org.github.io/iptv/"+key+".m3u"); if(!r.ok) throw 0;
+        cache[key]=parse(await r.text());
+      }
+      channels=cache[key]; render();
+      st(channels.length+" channel. Pumili para manood.");
+    }catch(e){ channels=[]; render(); st("Hindi makuha ang listahan. Subukan ulit mamaya.",true); }
+  }
+  async function play(c){
+    current=c.url; render(); st("Nilo-load: "+c.name+"…");
+    if(hls){ hls.destroy(); hls=null; }
+    video.pause(); video.removeAttribute("src"); video.load();
+    try{
+      if(/\.m3u8?(\?|$)/i.test(c.url) || true){
+        if(video.canPlayType("application/vnd.apple.mpegurl")){ video.src=c.url; }
+        else{
+          await loadHls();
+          if(!window.Hls || !Hls.isSupported()) throw 0;
+          hls=new Hls({maxBufferLength:20});
+          hls.on(Hls.Events.ERROR,(ev,d)=>{ if(d.fatal){ st("Hindi gumagana ang channel na ito ("+c.name+"). Subukan ang iba.",true); hls&&hls.destroy(); hls=null; } });
+          hls.loadSource(c.url); hls.attachMedia(video);
+        }
+      }
+      await video.play().catch(()=>{});
+      st("▶ "+c.name);
+    }catch(e){ st("Hindi ma-play: "+c.name+". Subukan ang iba.",true); }
+  }
+  window.tvOpen=()=>{ if(!started){ started=true; loadList(); } };
+  window.tvStop=()=>{ try{ video.pause(); }catch(e){} };
+  $("tvSrc").onchange=loadList;
+  $("tvQ").addEventListener("input",render);
+  if(!$("tvView").classList.contains("hidden")) window.tvOpen();
+})();
 </script>
 </body>
 </html>

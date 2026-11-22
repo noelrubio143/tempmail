@@ -26,7 +26,7 @@ docker compose down        # ihinto
 ```
 
 ## Notes
-- May dalawang tab sa taas ng site: 📬 Temp Mail at 💬 Chat (public chat room). Nasa memory lang ang huling 100 mensahe; nawawala kapag nag-restart.
+- May tatlong tab sa taas ng site: 📬 Temp Mail, 💬 Chat (public chat room) at 📺 IPTV (libreng public streams mula sa iptv-org; kailangan ng internet ang browser para makuha ang listahan). Nasa memory lang ang huling 100 mensahe; nawawala kapag nag-restart.
 - Domain ng web UI: `config.js` (default `amberss.site`)
 - Baguhin ang auto-delete sa `.env` (RETENTION=1h)
 - Kailangang bukas ang inbound port 25 sa provider
