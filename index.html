@@ -40,23 +40,29 @@ pre{white-space:pre-wrap;word-break:break-word;background:#0c1117;border:1px sol
 .dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--ok);margin-right:6px}
 .hidden{display:none}
 
-.chatbtn{position:fixed;right:16px;bottom:16px;width:54px;height:54px;border-radius:50%;background:var(--acc2);border:0;font-size:24px;box-shadow:0 4px 14px #0008;z-index:20}
-.chatbtn i{position:absolute;top:-2px;right:-2px;background:var(--bad);color:#fff;font:700 11px/18px system-ui;min-width:18px;border-radius:9px;text-align:center;font-style:normal}
-.chat{position:fixed;right:16px;bottom:82px;width:min(360px,calc(100vw - 32px));height:min(460px,calc(100vh - 110px));background:var(--card);border:1px solid var(--line);border-radius:14px;display:flex;flex-direction:column;z-index:20;box-shadow:0 8px 30px #000a}
-.chat.hidden{display:none}
-.chat .top{display:flex;gap:8px;align-items:center;padding:10px 12px;border-bottom:1px solid var(--line)}
+.tabs{display:flex;gap:8px;margin-bottom:14px}
+.tabs button{flex:1;padding:13px 10px;font-size:16px;font-weight:600;position:relative;background:var(--card)}
+.tabs button.on{background:var(--acc2);border-color:var(--acc2)}
+.tabs i{position:absolute;top:-6px;right:-4px;background:var(--bad);color:#fff;font:700 11px/18px system-ui;min-width:18px;border-radius:9px;text-align:center;font-style:normal}
+.chat{background:var(--card);border:1px solid var(--line);border-radius:14px;display:flex;flex-direction:column;height:calc(100vh - 150px);min-height:380px}
+.chat .top{display:flex;gap:8px;align-items:center;padding:12px 14px;border-bottom:1px solid var(--line)}
 .chat .top b{flex:1}
-.chat .top input{width:110px;background:#0c1117;border:1px solid var(--line);border-radius:8px;color:var(--text);padding:5px 8px;font:inherit;font-size:13px}
-.chat .log{flex:1;overflow-y:auto;padding:10px 12px;display:flex;flex-direction:column;gap:6px}
-.cm{font-size:14px;word-break:break-word}
+.chat .top input{width:130px;background:#0c1117;border:1px solid var(--line);border-radius:8px;color:var(--text);padding:7px 9px;font:inherit;font-size:14px}
+.chat .log{flex:1;overflow-y:auto;padding:12px 14px;display:flex;flex-direction:column;gap:8px}
+.cm{font-size:15px;word-break:break-word}
 .cm b{color:var(--acc)} .cm.me b{color:var(--ok)} .cm small{color:var(--mute);margin-left:6px;font-size:11px}
-.chat form{display:flex;gap:8px;padding:10px;border-top:1px solid var(--line)}
-.chat form input{flex:1;min-width:0;background:#0c1117;border:1px solid var(--line);border-radius:9px;color:var(--text);padding:9px 10px;font:inherit;outline:none}
+.chat form{display:flex;gap:8px;padding:12px;border-top:1px solid var(--line)}
+.chat form input{flex:1;min-width:0;background:#0c1117;border:1px solid var(--line);border-radius:9px;color:var(--text);padding:11px 12px;font:inherit;outline:none}
 </style>
 </head>
 <body>
 <div class="wrap">
-  <h1>📬 Temp Mail</h1>
+  <div class="tabs">
+    <button id="tabMail" class="on">📬 Temp Mail</button>
+    <button id="tabChat">💬 Chat<i id="chatBadge" class="hidden">0</i></button>
+  </div>
+
+  <div id="mailView">
 
   <div class="card">
     <div class="addr"><b id="addr">…</b><button id="copy">Kopyahin</button></div>
@@ -84,15 +90,17 @@ pre{white-space:pre-wrap;word-break:break-word;background:#0c1117;border:1px sol
     <div id="vbody"></div>
     <div class="att" id="vatt"></div>
   </div>
+  </div>
+
+  <div class="chat hidden" id="chatView">
+    <div class="top"><b>💬 Chat room</b><input id="nick" maxlength="20" placeholder="pangalan"></div>
+    <div class="log" id="clog"></div>
+    <form id="cform"><input id="ctext" maxlength="300" placeholder="Mag-type ng mensahe…" autocomplete="off"><button class="pri">Send</button></form>
+  </div>
 </div>
 
 
-<button class="chatbtn" id="chatBtn" aria-label="Chat">💬<i id="chatBadge" class="hidden">0</i></button>
-<div class="chat hidden" id="chat">
-  <div class="top"><b>Chat room</b><input id="nick" maxlength="20" placeholder="pangalan"><button id="chatX">✕</button></div>
-  <div class="log" id="clog"></div>
-  <form id="cform"><input id="ctext" maxlength="300" placeholder="Mag-type ng mensahe…" autocomplete="off"><button class="pri">Send</button></form>
-</div>
+
 <script src="config.js"></script>
 <script>
 const DOMAIN = window.TEMPMAIL_DOMAIN || location.hostname;
@@ -210,8 +218,19 @@ timer = setInterval(()=>{ if(!openId && !document.hidden) load(); }, 5000);
     es.addEventListener("history", e=>{ JSON.parse(e.data).forEach(add); $("clog").scrollTop = $("clog").scrollHeight; });
     es.onmessage = e=>{ const m = JSON.parse(e.data); const fresh = !seenIds.has(m.id); add(m); if(fresh && !isOpen && m.nick!==nick){ unread++; badge(); } };
   }
-  $("chatBtn").onclick = ()=>{ isOpen = !isOpen; $("chat").classList.toggle("hidden", !isOpen); if(isOpen){ unread=0; badge(); $("clog").scrollTop=$("clog").scrollHeight; $("ctext").focus(); } };
-  $("chatX").onclick = ()=>{ isOpen=false; $("chat").classList.add("hidden"); };
+  function show(tab){
+    isOpen = tab==="chat";
+    $("chatView").classList.toggle("hidden", !isOpen);
+    $("mailView").classList.toggle("hidden", isOpen);
+    $("tabChat").classList.toggle("on", isOpen);
+    $("tabMail").classList.toggle("on", !isOpen);
+    try{ localStorage.setItem("tm_tab", tab); }catch(e){}
+    if(isOpen){ unread=0; badge(); $("clog").scrollTop=$("clog").scrollHeight; $("ctext").focus(); }
+  }
+  $("tabMail").onclick = ()=>show("mail");
+  $("tabChat").onclick = ()=>show("chat");
+  let t0=""; try{ t0=localStorage.getItem("tm_tab")||""; }catch(e){}
+  if(t0==="chat") show("chat");
   $("cform").addEventListener("submit", async e=>{
     e.preventDefault(); const t = $("ctext").value.trim(); if(!t) return;
     $("ctext").value = "";
@@ -222,6 +241,7 @@ timer = setInterval(()=>{ if(!openId && !document.hidden) load(); }, 5000);
   });
   connect();
 })();
+
 </script>
 </body>
 </html>

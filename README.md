@@ -14,7 +14,7 @@ Buksan: `http://IP:9000` (may random email generator at sariling pangalan ng ema
 
 ## Update (kung may bagong version sa GitHub)
 ```
-cd ~/tempmail && git pull && docker compose up -d
+cd ~/tempmail && git pull && docker compose up -d --force-recreate
 ```
 
 ## Mga kapaki-pakinabang na command
@@ -26,7 +26,7 @@ docker compose down        # ihinto
 ```
 
 ## Notes
-- May public chat room (💬 sa kanang-ibaba ng site). Nasa memory lang ang huling 100 mensahe; nawawala kapag nag-restart.
+- May dalawang tab sa taas ng site: 📬 Temp Mail at 💬 Chat (public chat room). Nasa memory lang ang huling 100 mensahe; nawawala kapag nag-restart.
 - Domain ng web UI: `config.js` (default `amberss.site`)
 - Baguhin ang auto-delete sa `.env` (RETENTION=1h)
 - Kailangang bukas ang inbound port 25 sa provider
