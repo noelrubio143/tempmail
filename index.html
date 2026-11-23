@@ -196,7 +196,7 @@ async function openMsg(id){
     $("vbody").innerHTML = "";
     if(b.html){
       const f = document.createElement("iframe");
-      f.setAttribute("sandbox","");           // walang script
+      f.setAttribute("sandbox","allow-popups allow-popups-to-escape-sandbox allow-top-navigation-by-user-activation allow-forms"); // clickable links, walang script
       f.srcdoc = '<base target="_blank">'+b.html;
       $("vbody").appendChild(f);
     } else {
